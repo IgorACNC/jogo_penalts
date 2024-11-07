@@ -1,26 +1,33 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>  // Para função usleep()
+#include <pthread.h> // Para threads
 #include "keyboard.h"
 #include "screen.h"
 
 // Tamanho e posição da barra e do gol
 #define BARRA_LARGURA 6        // A barra do goleiro é agora exatamente 6 caracteres de largura
 #define GOL_LARGURA 32
-#define GOL_X 8
+#define TELA_LARGURA 80        // Largura da tela
+#define GOL_X ((TELA_LARGURA - GOL_LARGURA) / 2) // Centraliza o gol
 #define GOL_Y 5
 #define VELOCIDADE_BOLA 50000      // Velocidade de movimento da bola (0.05s)
 #define POSICAO_INICIAL_BOLA_Y 10  // Linha inicial da bola
 #define AUMENTO_VELOCIDADE 1.6     // Fator de aumento de 60%
 
+// Variáveis globais para controlar o goleiro
+int posGoleiro = (GOL_LARGURA - BARRA_LARGURA) / 2; // Posição inicial do goleiro
+int direcaoGoleiro = 1;
+int goleiroMovendo = 1; // Flag para controlar a movimentação do goleiro
+
 // Função para exibir o gol com a barra do goleiro
-void exibirGol(int pos) {
+void exibirGol() {
     screenGotoxy(GOL_X, GOL_Y - 1);
     printf("|------------------------------|");
 
     screenGotoxy(GOL_X, GOL_Y);
     for (int i = 0; i < GOL_LARGURA; i++) {
-        if (i >= pos && i < pos + BARRA_LARGURA) {
+        if (i >= posGoleiro && i < posGoleiro + BARRA_LARGURA) {
             printf("#"); // Representa a barra do goleiro
         } else {
             printf(" ");
@@ -30,7 +37,7 @@ void exibirGol(int pos) {
 }
 
 // Função para animar o movimento da bola em direção ao gol
-int animarBola(int direcaoChute, int posGoleiro) {
+int animarBola(int direcaoChute) {
     int xInicial;
 
     // Define a posição inicial da bola com base na direção do chute
@@ -41,43 +48,67 @@ int animarBola(int direcaoChute, int posGoleiro) {
         default: return 0; // Retorna se a direção for inválida
     }
 
+    // Move a bola em direção ao gol
     for (int y = POSICAO_INICIAL_BOLA_Y; y >= GOL_Y; y--) {
         screenClear();
-        exibirGol(posGoleiro);
+        
+        // Exibe o gol com a posição atual do goleiro
+        exibirGol();
+
+        // Desenha a bola na posição atual
         screenGotoxy(xInicial, y);
         printf("o");
         screenUpdate();
-        usleep(VELOCIDADE_BOLA);
 
+        // Verifica a colisão com a barra do goleiro
         if (y == GOL_Y && xInicial >= posGoleiro + GOL_X && xInicial < posGoleiro + GOL_X + BARRA_LARGURA) {
             return 1; // Defesa do goleiro
         }
+
+        // Atraso entre os movimentos da bola
+        usleep(VELOCIDADE_BOLA);
     }
 
     return 0; // Gol
 }
 
-// Função para o jogo de pênaltis com movimento do goleiro e tentativas de chute
-void jogoPenaltis() {
-    int posGoleiro = (GOL_LARGURA - BARRA_LARGURA) / 2;
-    int direcaoGoleiro = 1;
-    int tecla;
-    int gols = 0;
-    int tentativas = 5;
-    int velocidadeGoleiro = 100000; // Velocidade inicial do goleiro (0.1s)
+// Função para movimentação contínua do goleiro
+void *movimentoGoleiro(void *arg) {
+    int *velocidadeGoleiro = (int *)arg;
 
-    while (tentativas > 0) {
-        exibirGol(posGoleiro);
+    while (goleiroMovendo) {
         posGoleiro += direcaoGoleiro;
-        
+
         if (posGoleiro <= 0 || posGoleiro >= GOL_LARGURA - BARRA_LARGURA) {
             direcaoGoleiro *= -1;
         }
 
+        usleep(*velocidadeGoleiro);
+    }
+
+    return NULL;
+}
+
+// Função para o jogo de pênaltis com movimento do goleiro e tentativas de chute
+void jogoPenaltis() {
+    int tecla;
+    int gols = 0;
+    int tentativas = 5;
+    int velocidadeGoleiro = 100000; // Velocidade inicial do goleiro (0.1s)
+    
+    // Cria uma thread para movimentar o goleiro
+    pthread_t goleiroThread;
+    pthread_create(&goleiroThread, NULL, movimentoGoleiro, &velocidadeGoleiro);
+
+    while (tentativas > 0) {
+        exibirGol();
+
+        // Exibe a bola pronta para chute no centro da tela
         screenGotoxy(GOL_X + GOL_LARGURA / 2, POSICAO_INICIAL_BOLA_Y);
         printf("o");
         screenUpdate();
 
+        // Aguarda o chute do jogador
         if (keyhit()) {
             tecla = readch();
             if (tecla == 'q' || tecla == 'w' || tecla == 'e') {
@@ -85,7 +116,8 @@ void jogoPenaltis() {
                 printf(" ");
                 screenUpdate();
 
-                if (animarBola(tecla, posGoleiro)) {
+                // Anima a bola
+                if (animarBola(tecla)) {
                     screenGotoxy(GOL_X, GOL_Y + 2);
                     printf("Defesa do goleiro!");
                 } else {
@@ -103,7 +135,7 @@ void jogoPenaltis() {
                 screenUpdate();
                 sleep(1);
 
-                // Aumenta a velocidade do goleiro em 10% a cada chute
+                // Aumenta a velocidade do goleiro após cada chute
                 velocidadeGoleiro = (int)(velocidadeGoleiro / AUMENTO_VELOCIDADE);
 
                 if (tentativas > 0) {
@@ -111,9 +143,11 @@ void jogoPenaltis() {
                 }
             }
         }
-
-        usleep(velocidadeGoleiro); // Usa a velocidade atual do goleiro para o delay
     }
+
+    // Termina a movimentação do goleiro e espera a thread finalizar
+    goleiroMovendo = 0;
+    pthread_join(goleiroThread, NULL);
 
     screenClear();
     screenGotoxy(GOL_X, GOL_Y + 2);
