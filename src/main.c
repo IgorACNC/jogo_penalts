@@ -159,7 +159,7 @@ void jogoPenaltis() {
 void exibirMenuInicial() {
     int timeSelecionado = 0;
 
-    while (timeSelecionado < 1 || timeSelecionado > 3) {
+    while (timeSelecionado < 1 || timeSelecionado > 4) {
         screenClear();
         screenGotoxy(GOL_X, GOL_Y);
         printf("Bem-vindo ao PEnalts!");
@@ -185,6 +185,7 @@ void exibirMenuInicial() {
     if (timeSelecionado == 1) printf("Santa Cruz!");
     else if (timeSelecionado == 2) printf("Nautico!");
     else if (timeSelecionado == 3) printf("Sport!");
+    else if (timeSelecionado == 4) printf("Retro!");
 
     screenUpdate();
     sleep(2);
