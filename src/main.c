@@ -273,19 +273,40 @@ void exibirRanking() {
 
 void exibirMenuInicial() {
     screenClear();
-    screenGotoxy(GOL_X, GOL_Y + 1);
-    printf("Bem-vindo ao Jogo de Penalti!\n\n");
 
-    screenGotoxy(GOL_X + 7, GOL_Y + 4);
+    screenGotoxy(GOL_X - 12, GOL_Y + 1);
+    printf("     _______ _______ __    _ _______ ___   _______ _______ ");
+
+    screenGotoxy(GOL_X - 12, GOL_Y + 2);
+    printf("    |       |       |  |  | |   _   |   | |       |       |");
+
+    screenGotoxy(GOL_X - 12, GOL_Y + 3);
+    printf("    |    _  |    ___|   |_| |  |_|  |   | |_     _|  _____|");
+
+    screenGotoxy(GOL_X - 12, GOL_Y + 4);
+    printf("    |   |_| |   |___|       |       |   |   |   | | |_____ ");
+
+    screenGotoxy(GOL_X - 12, GOL_Y + 5);
+    printf("    |    ___|    ___|  _    |       |   |___|   | |_____  |");
+
+    screenGotoxy(GOL_X - 12, GOL_Y + 6);
+    printf("    |   |   |   |___| | |   |   _   |       |   |  _____| |");
+
+    screenGotoxy(GOL_X - 12, GOL_Y + 7);
+    printf("    |___|   |_______|_|  |__|__| |__|_______|___| |_______|");
+
+
+    // Exibir as opções do menu
+    screenGotoxy(GOL_X + 7, GOL_Y + 10);
     printf("Escolha seu time:");
-    screenGotoxy(GOL_X + 10, GOL_Y + 5);
+    screenGotoxy(GOL_X + 10, GOL_Y + 11);
     printf("1 - Sport");
-    screenGotoxy(GOL_X + 10, GOL_Y + 6);
+    screenGotoxy(GOL_X + 10, GOL_Y + 12);
     printf("2 - Nautico");
-    screenGotoxy(GOL_X + 10, GOL_Y + 7);
+    screenGotoxy(GOL_X + 10, GOL_Y + 13);
     printf("3 - Santa Cruz");
 
-    screenGotoxy(GOL_X, GOL_Y + 10);
+    screenGotoxy(GOL_X, GOL_Y + 16);
     printf("Pressione qualquer tecla para iniciar o jogo...");
     screenUpdate();
     getchar();
