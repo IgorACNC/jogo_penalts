@@ -1,26 +1,40 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <unistd.h>  // Para função usleep()
 #include <pthread.h> // Para threads
 #include "keyboard.h"
 #include "screen.h"
 
-// Tamanho e posição da barra e do gol
-#define BARRA_LARGURA 6        // A barra do goleiro é agora exatamente 6 caracteres de largura
+#define BARRA_LARGURA 6
 #define GOL_LARGURA 32
-#define TELA_LARGURA 80        // Largura da tela
-#define GOL_X ((TELA_LARGURA - GOL_LARGURA) / 2) // Centraliza o gol
+#define TELA_LARGURA 80
+#define GOL_X ((TELA_LARGURA - GOL_LARGURA) / 2)
 #define GOL_Y 5
-#define VELOCIDADE_BOLA 50000      // Velocidade de movimento da bola (0.05s)
-#define POSICAO_INICIAL_BOLA_Y 10  // Linha inicial da bola
-#define AUMENTO_VELOCIDADE 1.6     // Fator de aumento de 60%
+#define VELOCIDADE_BOLA 50000
+#define POSICAO_INICIAL_BOLA_Y 10
+#define AUMENTO_VELOCIDADE 1.6
 
-// Variáveis globais para controlar o goleiro
-int posGoleiro = (GOL_LARGURA - BARRA_LARGURA) / 2; // Posição inicial do goleiro
+#define MAX_JOGADORES 10
+
+typedef struct {
+    char nome[50];
+    int pontuacao;
+} Jogador;
+
+int posGoleiro = (GOL_LARGURA - BARRA_LARGURA) / 2;
 int direcaoGoleiro = 1;
-int goleiroMovendo = 1; // Flag para controlar a movimentação do goleiro
+int goleiroMovendo = 1;
+int pontosPorGol[3] = {5, 3, 5}; // Pontos iniciais para cada chute ('q', 'w', 'e')
 
-// Função para exibir o gol com a barra do goleiro
+void exibirGol();
+int animarBola(int direcaoChute, int *pontos);
+void *movimentoGoleiro(void *arg);
+void jogoPenaltis();
+void exibirMenuInicial();
+void salvarPontuacao(char *nome, int pontuacao);
+void exibirRanking();
+
 void exibirGol() {
     screenGotoxy(GOL_X, GOL_Y - 1);
     printf("|------------------------------|");
@@ -28,7 +42,7 @@ void exibirGol() {
     screenGotoxy(GOL_X, GOL_Y);
     for (int i = 0; i < GOL_LARGURA; i++) {
         if (i >= posGoleiro && i < posGoleiro + BARRA_LARGURA) {
-            printf("#"); // Representa a barra do goleiro
+            printf("#");
         } else {
             printf(" ");
         }
@@ -36,79 +50,66 @@ void exibirGol() {
     screenUpdate();
 }
 
-// Função para animar o movimento da bola em direção ao gol
-int animarBola(int direcaoChute) {
+int animarBola(int direcaoChute, int *pontos) {
     int xInicial;
+    int indicePontuacao;
 
-    // Define a posição inicial da bola com base na direção do chute
     switch (direcaoChute) {
-        case 'q': xInicial = GOL_X + 2; break;      // Direção esquerda
-        case 'w': xInicial = GOL_X + 12; break;     // Direção central
-        case 'e': xInicial = GOL_X + 26; break;     // Direção direita (mais à direita)
-        default: return 0; // Retorna se a direção for inválida
+        case 'q': xInicial = GOL_X + 2; indicePontuacao = 0; break;
+        case 'w': xInicial = GOL_X + 12; indicePontuacao = 1; break;
+        case 'e': xInicial = GOL_X + 26; indicePontuacao = 2; break;
+        default: return 0;
     }
 
-    // Move a bola em direção ao gol
     for (int y = POSICAO_INICIAL_BOLA_Y; y >= GOL_Y; y--) {
         screenClear();
-        
-        // Exibe o gol com a posição atual do goleiro
         exibirGol();
 
-        // Desenha a bola na posição atual
         screenGotoxy(xInicial, y);
         printf("o");
         screenUpdate();
 
-        // Verifica a colisão com a barra do goleiro
         if (y == GOL_Y && xInicial >= posGoleiro + GOL_X && xInicial < posGoleiro + GOL_X + BARRA_LARGURA) {
-            return 1; // Defesa do goleiro
+            return 1;
         }
 
-        // Atraso entre os movimentos da bola
         usleep(VELOCIDADE_BOLA);
     }
 
-    return 0; // Gol
+    *pontos += pontosPorGol[indicePontuacao];
+    pontosPorGol[indicePontuacao]++;
+    return 0;
 }
 
-// Função para movimentação contínua do goleiro
 void *movimentoGoleiro(void *arg) {
     int *velocidadeGoleiro = (int *)arg;
 
     while (goleiroMovendo) {
         posGoleiro += direcaoGoleiro;
-
         if (posGoleiro <= 0 || posGoleiro >= GOL_LARGURA - BARRA_LARGURA) {
             direcaoGoleiro *= -1;
         }
-
         usleep(*velocidadeGoleiro);
     }
-
     return NULL;
 }
 
-// Função para o jogo de pênaltis com movimento do goleiro e tentativas de chute
 void jogoPenaltis() {
     int tecla;
-    int gols = 0;
+    int pontos = 0;
     int tentativas = 5;
-    int velocidadeGoleiro = 100000; // Velocidade inicial do goleiro (0.1s)
+    int gols = 0;
+    int velocidadeGoleiro = 30000;
     
-    // Cria uma thread para movimentar o goleiro
     pthread_t goleiroThread;
     pthread_create(&goleiroThread, NULL, movimentoGoleiro, &velocidadeGoleiro);
 
     while (tentativas > 0) {
         exibirGol();
-
-        // Exibe a bola pronta para chute no centro da tela
         screenGotoxy(GOL_X + GOL_LARGURA / 2, POSICAO_INICIAL_BOLA_Y);
         printf("o");
         screenUpdate();
 
-        // Aguarda o chute do jogador
         if (keyhit()) {
             tecla = readch();
             if (tecla == 'q' || tecla == 'w' || tecla == 'e') {
@@ -116,8 +117,7 @@ void jogoPenaltis() {
                 printf(" ");
                 screenUpdate();
 
-                // Anima a bola
-                if (animarBola(tecla)) {
+                if (animarBola(tecla, &pontos)) {
                     screenGotoxy(GOL_X, GOL_Y + 2);
                     printf("Defesa do goleiro!");
                 } else {
@@ -135,7 +135,6 @@ void jogoPenaltis() {
                 screenUpdate();
                 sleep(1);
 
-                // Aumenta a velocidade do goleiro após cada chute
                 velocidadeGoleiro = (int)(velocidadeGoleiro / AUMENTO_VELOCIDADE);
 
                 if (tentativas > 0) {
@@ -145,62 +144,159 @@ void jogoPenaltis() {
         }
     }
 
-    // Termina a movimentação do goleiro e espera a thread finalizar
+    if (gols == 5) {
+        tentativas = 1;
+        screenClear();
+        screenGotoxy(GOL_X, GOL_Y + 2);
+        printf("Rodada Bonus! Você ganhou uma chance extra!");
+        screenUpdate();
+        sleep(2);
+
+        while (tentativas > 0) {
+            exibirGol();
+            screenGotoxy(GOL_X + GOL_LARGURA / 2, POSICAO_INICIAL_BOLA_Y);
+            printf("o");
+            screenUpdate();
+
+            if (keyhit()) {
+                tecla = readch();
+                if (tecla == 'q' || tecla == 'w' || tecla == 'e') {
+                    screenGotoxy(GOL_X + GOL_LARGURA / 2, POSICAO_INICIAL_BOLA_Y);
+                    printf(" ");
+                    screenUpdate();
+
+                    if (animarBola(tecla, &pontos)) {
+                        screenGotoxy(GOL_X, GOL_Y + 2);
+                        printf("Defesa do goleiro!");
+                    } else {
+                        screenGotoxy(GOL_X, GOL_Y + 2);
+                        printf("Gol na rodada bonus!");
+                        gols++;
+                    }
+
+                    tentativas--;
+                    screenUpdate();
+                    sleep(1);
+                }
+            }
+        }
+    }
+
     goleiroMovendo = 0;
     pthread_join(goleiroThread, NULL);
 
+    char nome[50];
     screenClear();
     screenGotoxy(GOL_X, GOL_Y + 2);
-    printf("Fim do jogo! Voce marcou %d gol(s)!", gols);
+    printf("Fim do jogo! Voce marcou %d ponto(s)!", pontos);
+    screenGotoxy(GOL_X, GOL_Y + 4);
+    printf("Digite seu nome: ");
+    screenUpdate();
+    scanf("%49s", nome);
+
+    salvarPontuacao(nome, pontos);
+    exibirRanking();
     screenUpdate();
 }
 
-// Função para exibir o menu inicial e selecionar o time
-void exibirMenuInicial() {
-    int timeSelecionado = 0;
+void salvarPontuacao(char *nome, int pontuacao) {
+    Jogador ranking[MAX_JOGADORES + 1];
+    int totalJogadores = 0;
 
-    while (timeSelecionado < 1 || timeSelecionado > 4) {
-        screenClear();
-        screenGotoxy(GOL_X, GOL_Y);
-        printf("Bem-vindo ao PEnalts!");
-        screenGotoxy(GOL_X, GOL_Y + 1);
-        printf("Escolha seu time:");
-        screenGotoxy(GOL_X, GOL_Y + 2);
-        printf("1 - Santa Cruz");
-        screenGotoxy(GOL_X, GOL_Y + 3);
-        printf("2 - Nautico");
-        screenGotoxy(GOL_X, GOL_Y + 4);
-        printf("3 - Sport");
-
-        screenUpdate();
-        
-        if (keyhit()) {
-            timeSelecionado = readch() - '0';  // Converte a entrada em número
+    FILE *arquivo = fopen("ranking.txt", "r");
+    if (arquivo != NULL) {
+        while (fscanf(arquivo, "%49s %d", ranking[totalJogadores].nome, &ranking[totalJogadores].pontuacao) == 2) {
+            totalJogadores++;
         }
+        fclose(arquivo);
+    }
+
+    ranking[totalJogadores].pontuacao = pontuacao;
+    strcpy(ranking[totalJogadores].nome, nome);
+    totalJogadores++;
+
+    for (int i = 0; i < totalJogadores - 1; i++) {
+        for (int j = i + 1; j < totalJogadores; j++) {
+            if (ranking[j].pontuacao > ranking[i].pontuacao) {
+                Jogador temp = ranking[i];
+                ranking[i] = ranking[j];
+                ranking[j] = temp;
+            }
+        }
+    }
+
+    if (totalJogadores > MAX_JOGADORES) {
+        totalJogadores = MAX_JOGADORES;
+    }
+
+    arquivo = fopen("ranking.txt", "w");
+    for (int i = 0; i < totalJogadores; i++) {
+        fprintf(arquivo, "%-20s %d\n", ranking[i].nome, ranking[i].pontuacao);
+    }
+    fclose(arquivo);
+}
+
+void exibirRanking() {
+    FILE *arquivo = fopen("ranking.txt", "r");
+    if (arquivo == NULL) {
+        printf("Erro ao abrir o arquivo de ranking.\n");
+        return;
     }
 
     screenClear();
     screenGotoxy(GOL_X, GOL_Y);
-    printf("Voce escolheu: ");
-    if (timeSelecionado == 1) printf("Santa Cruz!");
-    else if (timeSelecionado == 2) printf("Nautico!");
-    else if (timeSelecionado == 3) printf("Sport!");
-    else if (timeSelecionado == 4) printf("Retro!");
+    printf("Ranking dos Top 10 Jogadores:\n");
 
+    int linha = GOL_Y + 2;
+    char nome[50];
+    int pontuacao;
+    while (fscanf(arquivo, "%49s %d", nome, &pontuacao) == 2) {
+        screenGotoxy(GOL_X, linha);
+        printf("%-10s %d", nome, pontuacao);
+        linha++;
+    }
+    fclose(arquivo);
+
+    // Espera até que o usuário digite '0' para sair da tela de ranking
+    int sair = -1;
+    screenGotoxy(GOL_X, linha + 2);
+    printf("Digite 0 para voltar ao menu...");
     screenUpdate();
-    sleep(2);
+
+    while (sair != 0) {
+        if (keyhit()) {
+            sair = readch() - '0'; // Lê o caractere digitado e converte para inteiro
+        }
+    }
+}
+
+
+void exibirMenuInicial() {
     screenClear();
+    screenGotoxy(GOL_X, GOL_Y + 1);
+    printf("Bem-vindo ao Jogo de Penalti!\n\n");
+
+    screenGotoxy(GOL_X + 7, GOL_Y + 4);
+    printf("Escolha seu time:");
+    screenGotoxy(GOL_X + 10, GOL_Y + 5);
+    printf("1 - Sport");
+    screenGotoxy(GOL_X + 10, GOL_Y + 6);
+    printf("2 - Nautico");
+    screenGotoxy(GOL_X + 10, GOL_Y + 7);
+    printf("3 - Santa Cruz");
+
+    screenGotoxy(GOL_X, GOL_Y + 10);
+    printf("Pressione qualquer tecla para iniciar o jogo...");
+    screenUpdate();
+    getchar();
 }
 
 int main() {
-    keyboardInit();
-    screenInit(1);
-
-    exibirMenuInicial();  // Exibe o menu inicial e permite seleção de time
-    jogoPenaltis();       // Inicia o jogo
-
-    screenDestroy();
-    keyboardDestroy();
-
+    exibirMenuInicial();
+    screenClear();
+    jogoPenaltis();
+    screenGotoxy(GOL_X, GOL_Y + 2);
+    printf("Obrigado por jogar!");
+    screenUpdate();
     return 0;
 }
