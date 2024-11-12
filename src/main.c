@@ -6,14 +6,14 @@
 #include "keyboard.h"
 #include "screen.h"
 
-#define BARRA_LARGURA 6
+#define BARRA_LARGURA 8 // Aumentado de 6 para 8 caracteres
 #define GOL_LARGURA 32
 #define TELA_LARGURA 80
 #define GOL_X ((TELA_LARGURA - GOL_LARGURA) / 2)
 #define GOL_Y 5
-#define VELOCIDADE_BOLA 50000
+#define VELOCIDADE_BOLA 70000
 #define POSICAO_INICIAL_BOLA_Y 10
-#define AUMENTO_VELOCIDADE 1.6
+#define AUMENTO_VELOCIDADE 1.7
 
 #define MAX_JOGADORES 10
 
@@ -22,10 +22,21 @@ typedef struct {
     int pontuacao;
 } Jogador;
 
-int posGoleiro = (GOL_LARGURA - BARRA_LARGURA) / 2;
-int direcaoGoleiro = 1;
+int posGoleiro1 = (GOL_LARGURA - BARRA_LARGURA) / 2;
+int posGoleiro2 = GOL_LARGURA - BARRA_LARGURA; // Segundo goleiro começa do outro lado
+int direcaoGoleiro1 = 1;
+int direcaoGoleiro2 = -1; // Direção oposta
 int goleiroMovendo = 1;
-int pontosPorGol[3] = {5, 3, 5}; // Pontos iniciais para cada chute ('q', 'w', 'e')
+int modoDificil = 0; // Flag para o modo difícil
+int pontosPorGol[3] = {2, 4, 2};
+
+void exibirGol();
+int animarBola(int direcaoChute, int *pontos);
+void *movimentoGoleiro(void *arg);
+void jogoPenaltis();
+void exibirMenuInicial();
+void salvarPontuacao(char *nome, int pontuacao);
+void exibirRanking();
 
 void exibirGol();
 int animarBola(int direcaoChute, int *pontos);
@@ -41,7 +52,8 @@ void exibirGol() {
 
     screenGotoxy(GOL_X, GOL_Y);
     for (int i = 0; i < GOL_LARGURA; i++) {
-        if (i >= posGoleiro && i < posGoleiro + BARRA_LARGURA) {
+        if ((i >= posGoleiro1 && i < posGoleiro1 + BARRA_LARGURA) || 
+            (modoDificil && i >= posGoleiro2 && i < posGoleiro2 + BARRA_LARGURA)) {
             printf("#");
         } else {
             printf(" ");
@@ -69,26 +81,44 @@ int animarBola(int direcaoChute, int *pontos) {
         printf("o");
         screenUpdate();
 
-        if (y == GOL_Y && xInicial >= posGoleiro + GOL_X && xInicial < posGoleiro + GOL_X + BARRA_LARGURA) {
-            return 1;
+        if (y == GOL_Y && 
+            ((xInicial >= posGoleiro1 + GOL_X && xInicial < posGoleiro1 + GOL_X + BARRA_LARGURA) ||
+            (modoDificil && xInicial >= posGoleiro2 + GOL_X && xInicial < posGoleiro2 + GOL_X + BARRA_LARGURA))) {
+            return 1; // Defesa do goleiro
         }
 
         usleep(VELOCIDADE_BOLA);
     }
 
-    *pontos += pontosPorGol[indicePontuacao];
-    pontosPorGol[indicePontuacao]++;
-    return 0;
+    // Ajuste da pontuação de acordo com o modo
+    if (modoDificil) {
+        if (indicePontuacao == 0 || indicePontuacao == 2) {
+            *pontos += 6;
+        } else {
+            *pontos += 9;
+        }
+    } else {
+        *pontos += pontosPorGol[indicePontuacao];
+        pontosPorGol[indicePontuacao]++;
+    }
+    return 0; // Gol marcado
 }
 
 void *movimentoGoleiro(void *arg) {
     int *velocidadeGoleiro = (int *)arg;
 
     while (goleiroMovendo) {
-        posGoleiro += direcaoGoleiro;
-        if (posGoleiro <= 0 || posGoleiro >= GOL_LARGURA - BARRA_LARGURA) {
-            direcaoGoleiro *= -1;
+        posGoleiro1 += direcaoGoleiro1;
+        if (modoDificil) posGoleiro2 += direcaoGoleiro2;
+
+        if (posGoleiro1 <= 0 || posGoleiro1 >= GOL_LARGURA - BARRA_LARGURA) {
+            direcaoGoleiro1 *= -1;
         }
+
+        if (modoDificil && (posGoleiro2 <= 0 || posGoleiro2 >= GOL_LARGURA - BARRA_LARGURA)) {
+            direcaoGoleiro2 *= -1;
+        }
+
         usleep(*velocidadeGoleiro);
     }
     return NULL;
@@ -99,7 +129,7 @@ void jogoPenaltis() {
     int pontos = 0;
     int tentativas = 5;
     int gols = 0;
-    int velocidadeGoleiro = 30000;
+    int velocidadeGoleiro = 25000;
     
     pthread_t goleiroThread;
     pthread_create(&goleiroThread, NULL, movimentoGoleiro, &velocidadeGoleiro);
@@ -288,52 +318,22 @@ void exibirMenuInicial() {
     screenGotoxy(GOL_X - 12, GOL_Y + 7);
     printf("    |___|   |_______|_|  |__|__| |__|_______|___| |_______|");
 
-    // Exibir as opções do menu
     screenGotoxy(GOL_X + 7, GOL_Y + 10);
-    printf("Escolha seu time:");
+    printf("Escolha o Modo de Jogo:");
     screenGotoxy(GOL_X + 10, GOL_Y + 11);
-    printf("1 - Sport");
+    printf("1 - Fácil");
     screenGotoxy(GOL_X + 10, GOL_Y + 12);
-    printf("2 - Náutico");
-    screenGotoxy(GOL_X + 10, GOL_Y + 13);
-    printf("3 - Santa Cruz");
+    printf("2 - Difícil");
 
     screenGotoxy(GOL_X + 10, GOL_Y + 15);
-    printf("Digite o número do seu time: ");
+    printf("Digite o número do modo: ");
     screenUpdate();
 
-    int escolha;
-    scanf("%d", &escolha);
-
-    char nomeTime[20];
-    switch (escolha) {
-        case 1:
-            strcpy(nomeTime, "Sport");
-            break;
-        case 2:
-            strcpy(nomeTime, "Náutico");
-            break;
-        case 3:
-            strcpy(nomeTime, "Santa Cruz");
-            break;
-        case 4:
-            strcpy(nomeTime, "Retrô");
-            break;
-        case 5:
-            strcpy(nomeTime, "Íbis");
-            break;
-        default:
-            strcpy(nomeTime, "Time Inválido");
-            break;
-    }
-
-    // Exibir o time selecionado
-    screenClear();
-    screenGotoxy(GOL_X, GOL_Y + 2);
-    printf("Você selecionou: %s", nomeTime);
-    screenUpdate();
-    sleep(2);  // Espera 2 segundos antes de começar o jogo
+    int modo;
+    scanf("%d", &modo);
+    modoDificil = (modo == 2); // Define o modo difícil se a entrada for '2'
 }
+
 
 int main() {
     exibirMenuInicial();
