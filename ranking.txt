@@ -1,2 +1,6 @@
 igor                 40
+dsa                  35
 leal                 26
+messudo              21
+e                    18
+q                    18
