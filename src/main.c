@@ -307,7 +307,7 @@ void exibirMenuInicial() {
     printf("3 - Santa Cruz");
 
     screenGotoxy(GOL_X, GOL_Y + 16);
-    printf("Pressione qualquer tecla para iniciar o jogo...");
+    printf("Pressione qualquer tecla para iniciar o jogo:");
     screenUpdate();
     getchar();
 }

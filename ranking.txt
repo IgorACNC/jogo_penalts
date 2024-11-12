@@ -1,1 +1,2 @@
 igor                 40
+leal                 26
