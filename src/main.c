@@ -5,6 +5,7 @@
 #include <pthread.h> // Para threads
 #include "keyboard.h"
 #include "screen.h"
+#include "timer.h"
 
 #define BARRA_LARGURA 8 // Aumentado de 6 para 8 caracteres
 #define GOL_LARGURA 32
@@ -47,6 +48,7 @@ void salvarPontuacao(char *nome, int pontuacao);
 void exibirRanking();
 
 void exibirGol() {
+    screenSetColor(GREEN, LIGHTGREEN);
     screenGotoxy(GOL_X, GOL_Y - 1);
     printf("|------------------------------|");
 
@@ -125,6 +127,7 @@ void *movimentoGoleiro(void *arg) {
 }
 
 void jogoPenaltis() {
+    screenInit(1);
     int tecla;
     int pontos = 0;
     int tentativas = 5;
@@ -217,6 +220,7 @@ void jogoPenaltis() {
 
     char nome[50];
     screenClear();
+    screenInit(1);
     screenGotoxy(GOL_X, GOL_Y + 2);
     printf("Fim do jogo! Voce marcou %d ponto(s)!", pontos);
     screenGotoxy(GOL_X, GOL_Y + 4);
@@ -267,6 +271,7 @@ void salvarPontuacao(char *nome, int pontuacao) {
 }
 
 void exibirRanking() {
+    screenSetColor(RED, WHITE);
     FILE *arquivo = fopen("ranking.txt", "r");
     if (arquivo == NULL) {
         printf("Erro ao abrir o arquivo de ranking.\n");
@@ -274,6 +279,7 @@ void exibirRanking() {
     }
 
     screenClear();
+    screenInit(1);
     screenGotoxy(GOL_X, GOL_Y);
     printf("Ranking dos Top 10 Jogadores:\n");
 
@@ -303,6 +309,8 @@ void exibirRanking() {
 
 void exibirMenuInicial() {
     screenClear();
+    screenSetColor(YELLOW, WHITE);
+    screenInit(1);
     screenGotoxy(GOL_X - 12, GOL_Y + 1);
     printf("     _______ _______ __    _ _______ ___   _______ _______ ");
     screenGotoxy(GOL_X - 12, GOL_Y + 2);
@@ -342,5 +350,6 @@ int main() {
     screenGotoxy(GOL_X, GOL_Y + 2);
     printf("Obrigado por jogar!");
     screenUpdate();
+    screenDestroy();
     return 0;
 }
