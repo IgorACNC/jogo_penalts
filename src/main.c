@@ -7,7 +7,7 @@
 #include "screen.h"
 #include "timer.h"
 
-#define BARRA_LARGURA 8 // Aumentado de 6 para 8 caracteres
+#define BARRA_LARGURA 8
 #define GOL_LARGURA 32
 #define TELA_LARGURA 80
 #define GOL_X ((TELA_LARGURA - GOL_LARGURA) / 2)
@@ -31,7 +31,7 @@ typedef struct{
 } Jogador;
 
 int posGoleiro1 = (GOL_LARGURA - BARRA_LARGURA) / 2;
-int posGoleiro2 = GOL_LARGURA - BARRA_LARGURA; // Segundo goleiro começa do outro lado
+int posGoleiro2 = GOL_LARGURA - BARRA_LARGURA; // Segundo goleiro começa na direção oposta
 int direcaoGoleiro1 = 1;
 int direcaoGoleiro2 = -1; // Direção oposta
 int goleiroMovendo = 1;
@@ -247,22 +247,21 @@ void jogoPenaltis(){
 void salvarPontuacao(char *nome, int pontuacao){
     Jogador *ranking = NULL;
     int totalJogadores = 0;
-    int capacidade = 10; // Início com capacidade para 10 jogadores
+    int capacidade = 10;
 
-    // Alocar memória inicial
     ranking = (Jogador *)malloc(capacidade * sizeof(Jogador));
     if (ranking == NULL){
         perror("Erro ao alocar memória para ranking");
         return;
     }
 
-    // Carregar dados existentes do arquivo
+    // Lendo o arquivo
     FILE *arquivo = fopen("ranking.txt", "r");
     if (arquivo != NULL){
         while (fscanf(arquivo, "%49s %d", ranking[totalJogadores].nome, 
                       &ranking[totalJogadores].pontuacao) == 2){
             totalJogadores++;
-            // Realocar memória se necessário
+            // Realocar memória
             if (totalJogadores >= capacidade){
                 capacidade *= 2;
                 ranking = (Jogador *)realloc(ranking, capacidade * sizeof(Jogador));
@@ -289,7 +288,7 @@ void salvarPontuacao(char *nome, int pontuacao){
     ranking[totalJogadores].pontuacao = pontuacao;
     totalJogadores++;
 
-    // Ordenar jogadores por pontuação
+    // Ordenando por pontuação
     for (int i = 0; i < totalJogadores - 1; i++){
         for (int j = i + 1; j < totalJogadores; j++){
             if (ranking[j].pontuacao > ranking[i].pontuacao){
@@ -300,7 +299,7 @@ void salvarPontuacao(char *nome, int pontuacao){
         }
     }
 
-    // Limitar a lista ao máximo de jogadores permitidos
+    // Limitar a lista até 10
     if (totalJogadores > MAX_JOGADORES){
         totalJogadores = MAX_JOGADORES;
     }
@@ -317,7 +316,6 @@ void salvarPontuacao(char *nome, int pontuacao){
     }
     fclose(arquivo);
 
-    // Liberar memória dinâmica
     free(ranking);
 }
 
@@ -344,7 +342,6 @@ void exibirRanking(){
     }
     fclose(arquivo);
 
-    // Espera até que o usuário digite '0' para sair da tela de ranking
     int sair = -1;
     screenGotoxy(GOL_X, linha + 2);
     printf("Digite 0 para voltar ao menu:");
@@ -352,7 +349,7 @@ void exibirRanking(){
 
     while (sair != 0){
         if (keyhit()){
-            sair = readch() - '0'; // Lê o caractere digitado e converte para inteiro
+            sair = readch() - '0'; // Lê o 0 digitado e converte para inteiro
         }
     }
 }
@@ -390,7 +387,7 @@ void exibirMenuInicial(){
 
     int modo;
     scanf("%d", &modo);
-    modoDificil = (modo == 2); // Define o modo difícil se a entrada for '2'
+    modoDificil = (modo == 2);
 }
 
 
