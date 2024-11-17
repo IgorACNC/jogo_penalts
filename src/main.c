@@ -15,8 +15,15 @@
 #define VELOCIDADE_BOLA 70000
 #define POSICAO_INICIAL_BOLA_Y 10
 #define AUMENTO_VELOCIDADE 1.7
-
 #define MAX_JOGADORES 10
+#define JOGADOR_ALTURA 3
+#define JOGADOR_LARGURA 5
+
+const char jogador[JOGADOR_ALTURA][JOGADOR_LARGURA] = {
+    " O ",
+    "/|\\",
+    "/ \\"
+};
 
 typedef struct {
     char nome[50];
@@ -39,13 +46,13 @@ void exibirMenuInicial();
 void salvarPontuacao(char *nome, int pontuacao);
 void exibirRanking();
 
-void exibirGol();
-int animarBola(int direcaoChute, int *pontos);
-void *movimentoGoleiro(void *arg);
-void jogoPenaltis();
-void exibirMenuInicial();
-void salvarPontuacao(char *nome, int pontuacao);
-void exibirRanking();
+void exibirJogador(int x, int y) {
+    for (int i = 0; i < JOGADOR_ALTURA; i++) {
+        screenGotoxy(x, y + i);
+        printf("%s", jogador[i]);
+    }
+    screenUpdate();
+}
 
 void exibirGol() {
     screenSetColor(GREEN, LIGHTGREEN);
@@ -79,20 +86,24 @@ int animarBola(int direcaoChute, int *pontos) {
         screenClear();
         exibirGol();
 
+        // Exibe a bola
         screenGotoxy(xInicial, y);
         printf("o");
+
+        // Exibe o jogador abaixo da bola
+        exibirJogador(xInicial - 1, y + 2);
+
         screenUpdate();
 
         if (y == GOL_Y && 
             ((xInicial >= posGoleiro1 + GOL_X && xInicial < posGoleiro1 + GOL_X + BARRA_LARGURA) ||
             (modoDificil && xInicial >= posGoleiro2 + GOL_X && xInicial < posGoleiro2 + GOL_X + BARRA_LARGURA))) {
-            return 1; // Defesa do goleiro
+            return 1;
         }
 
         usleep(VELOCIDADE_BOLA);
     }
 
-    // Ajuste da pontuação de acordo com o modo
     if (modoDificil) {
         if (indicePontuacao == 0 || indicePontuacao == 2) {
             *pontos += 6;
@@ -103,7 +114,7 @@ int animarBola(int direcaoChute, int *pontos) {
         *pontos += pontosPorGol[indicePontuacao];
         pontosPorGol[indicePontuacao]++;
     }
-    return 0; // Gol marcado
+    return 0;
 }
 
 void *movimentoGoleiro(void *arg) {
