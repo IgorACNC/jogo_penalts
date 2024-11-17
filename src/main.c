@@ -25,7 +25,7 @@ const char jogador[JOGADOR_ALTURA][JOGADOR_LARGURA] = {
     "/ \\"
 };
 
-typedef struct {
+typedef struct{
     char nome[50];
     int pontuacao;
 } Jogador;
@@ -46,21 +46,21 @@ void exibirMenuInicial();
 void salvarPontuacao(char *nome, int pontuacao);
 void exibirRanking();
 
-void exibirJogador(int x, int y) {
-    for (int i = 0; i < JOGADOR_ALTURA; i++) {
+void exibirJogador(int x, int y){
+    for (int i = 0; i < JOGADOR_ALTURA; i++){
         screenGotoxy(x, y + i);
         printf("%s", jogador[i]);
     }
     screenUpdate();
 }
 
-void exibirGol() {
+void exibirGol(){
     screenSetColor(GREEN, LIGHTGREEN);
     screenGotoxy(GOL_X, GOL_Y - 1);
     printf("|------------------------------|");
 
     screenGotoxy(GOL_X, GOL_Y);
-    for (int i = 0; i < GOL_LARGURA; i++) {
+    for (int i = 0; i < GOL_LARGURA; i++){
         if ((i >= posGoleiro1 && i < posGoleiro1 + BARRA_LARGURA) || 
             (modoDificil && i >= posGoleiro2 && i < posGoleiro2 + BARRA_LARGURA)) {
             printf("#");
@@ -71,18 +71,18 @@ void exibirGol() {
     screenUpdate();
 }
 
-int animarBola(int direcaoChute, int *pontos) {
+int animarBola(int direcaoChute, int *pontos){
     int xInicial;
     int indicePontuacao;
 
-    switch (direcaoChute) {
+    switch (direcaoChute){
         case 'q': xInicial = GOL_X + 2; indicePontuacao = 0; break;
         case 'w': xInicial = GOL_X + 12; indicePontuacao = 1; break;
         case 'e': xInicial = GOL_X + 26; indicePontuacao = 2; break;
         default: return 0;
     }
 
-    for (int y = POSICAO_INICIAL_BOLA_Y; y >= GOL_Y; y--) {
+    for (int y = POSICAO_INICIAL_BOLA_Y; y >= GOL_Y; y--){
         screenClear();
         exibirGol();
 
@@ -97,34 +97,34 @@ int animarBola(int direcaoChute, int *pontos) {
 
         if (y == GOL_Y && 
             ((xInicial >= posGoleiro1 + GOL_X && xInicial < posGoleiro1 + GOL_X + BARRA_LARGURA) ||
-            (modoDificil && xInicial >= posGoleiro2 + GOL_X && xInicial < posGoleiro2 + GOL_X + BARRA_LARGURA))) {
+            (modoDificil && xInicial >= posGoleiro2 + GOL_X && xInicial < posGoleiro2 + GOL_X + BARRA_LARGURA))){
             return 1;
         }
 
         usleep(VELOCIDADE_BOLA);
     }
 
-    if (modoDificil) {
+    if (modoDificil){
         if (indicePontuacao == 0 || indicePontuacao == 2) {
             *pontos += 6;
         } else {
             *pontos += 9;
         }
-    } else {
+    }else{
         *pontos += pontosPorGol[indicePontuacao];
         pontosPorGol[indicePontuacao]++;
     }
     return 0;
 }
 
-void *movimentoGoleiro(void *arg) {
+void *movimentoGoleiro(void *arg){
     int *velocidadeGoleiro = (int *)arg;
 
-    while (goleiroMovendo) {
+    while (goleiroMovendo){
         posGoleiro1 += direcaoGoleiro1;
         if (modoDificil) posGoleiro2 += direcaoGoleiro2;
 
-        if (posGoleiro1 <= 0 || posGoleiro1 >= GOL_LARGURA - BARRA_LARGURA) {
+        if (posGoleiro1 <= 0 || posGoleiro1 >= GOL_LARGURA - BARRA_LARGURA){
             direcaoGoleiro1 *= -1;
         }
 
@@ -137,7 +137,7 @@ void *movimentoGoleiro(void *arg) {
     return NULL;
 }
 
-void jogoPenaltis() {
+void jogoPenaltis(){
     screenInit(1);
     int tecla;
     int pontos = 0;
@@ -148,7 +148,7 @@ void jogoPenaltis() {
     pthread_t goleiroThread;
     pthread_create(&goleiroThread, NULL, movimentoGoleiro, &velocidadeGoleiro);
 
-    while (tentativas > 0) {
+    while (tentativas > 0){
         exibirGol();
         screenGotoxy(GOL_X + GOL_LARGURA / 2, POSICAO_INICIAL_BOLA_Y);
         printf("o");
@@ -156,12 +156,12 @@ void jogoPenaltis() {
 
         if (keyhit()) {
             tecla = readch();
-            if (tecla == 'q' || tecla == 'w' || tecla == 'e') {
+            if (tecla == 'q' || tecla == 'w' || tecla == 'e'){
                 screenGotoxy(GOL_X + GOL_LARGURA / 2, POSICAO_INICIAL_BOLA_Y);
                 printf(" ");
                 screenUpdate();
 
-                if (animarBola(tecla, &pontos)) {
+                if (animarBola(tecla, &pontos)){
                     screenGotoxy(GOL_X, GOL_Y + 2);
                     printf("Defesa do goleiro!");
                 } else {
@@ -181,14 +181,14 @@ void jogoPenaltis() {
 
                 velocidadeGoleiro = (int)(velocidadeGoleiro / AUMENTO_VELOCIDADE);
 
-                if (tentativas > 0) {
+                if (tentativas > 0){
                     screenClear();
                 }
             }
         }
     }
 
-    if (gols == 5) {
+    if (gols == 5){
         tentativas = 1;
         screenClear();
         screenGotoxy(GOL_X, GOL_Y + 2);
@@ -196,7 +196,7 @@ void jogoPenaltis() {
         screenUpdate();
         sleep(2);
 
-        while (tentativas > 0) {
+        while (tentativas > 0){
             exibirGol();
             screenGotoxy(GOL_X + GOL_LARGURA / 2, POSICAO_INICIAL_BOLA_Y);
             printf("o");
@@ -204,12 +204,12 @@ void jogoPenaltis() {
 
             if (keyhit()) {
                 tecla = readch();
-                if (tecla == 'q' || tecla == 'w' || tecla == 'e') {
+                if (tecla == 'q' || tecla == 'w' || tecla == 'e'){
                     screenGotoxy(GOL_X + GOL_LARGURA / 2, POSICAO_INICIAL_BOLA_Y);
                     printf(" ");
                     screenUpdate();
 
-                    if (animarBola(tecla, &pontos)) {
+                    if (animarBola(tecla, &pontos)){
                         screenGotoxy(GOL_X, GOL_Y + 2);
                         printf("Defesa do goleiro!");
                     } else {
@@ -244,25 +244,55 @@ void jogoPenaltis() {
     screenUpdate();
 }
 
-void salvarPontuacao(char *nome, int pontuacao) {
-    Jogador ranking[MAX_JOGADORES + 1];
+void salvarPontuacao(char *nome, int pontuacao){
+    Jogador *ranking = NULL;
     int totalJogadores = 0;
+    int capacidade = 10; // Início com capacidade para 10 jogadores
 
+    // Alocar memória inicial
+    ranking = (Jogador *)malloc(capacidade * sizeof(Jogador));
+    if (ranking == NULL){
+        perror("Erro ao alocar memória para ranking");
+        return;
+    }
+
+    // Carregar dados existentes do arquivo
     FILE *arquivo = fopen("ranking.txt", "r");
-    if (arquivo != NULL) {
-        while (fscanf(arquivo, "%49s %d", ranking[totalJogadores].nome, &ranking[totalJogadores].pontuacao) == 2) {
+    if (arquivo != NULL){
+        while (fscanf(arquivo, "%49s %d", ranking[totalJogadores].nome, 
+                      &ranking[totalJogadores].pontuacao) == 2){
             totalJogadores++;
+            // Realocar memória se necessário
+            if (totalJogadores >= capacidade){
+                capacidade *= 2;
+                ranking = (Jogador *)realloc(ranking, capacidade * sizeof(Jogador));
+                if (ranking == NULL){
+                    perror("Erro ao realocar memória para ranking");
+                    fclose(arquivo);
+                    return;
+                }
+            }
         }
         fclose(arquivo);
     }
 
-    ranking[totalJogadores].pontuacao = pontuacao;
+    // Adicionar novo jogador
+    if (totalJogadores >= capacidade){
+        capacidade++;
+        ranking = (Jogador *)realloc(ranking, capacidade * sizeof(Jogador));
+        if (ranking == NULL){
+            perror("Erro ao realocar memória para novo jogador");
+            return;
+        }
+    }
     strcpy(ranking[totalJogadores].nome, nome);
+    ranking[totalJogadores].pontuacao = pontuacao;
     totalJogadores++;
 
-    for (int i = 0; i < totalJogadores - 1; i++) {
-        for (int j = i + 1; j < totalJogadores; j++) {
-            if (ranking[j].pontuacao > ranking[i].pontuacao) {
+    // Ordenar jogadores por pontuação
+    for (int i = 0; i < totalJogadores - 1; i++){
+        for (int j = i + 1; j < totalJogadores; j++){
+            if (ranking[j].pontuacao > ranking[i].pontuacao){
                 Jogador temp = ranking[i];
                 ranking[i] = ranking[j];
                 ranking[j] = temp;
@@ -270,18 +300,28 @@ void salvarPontuacao(char *nome, int pontuacao) {
         }
     }
 
-    if (totalJogadores > MAX_JOGADORES) {
+    // Limitar a lista ao máximo de jogadores permitidos
+    if (totalJogadores > MAX_JOGADORES){
         totalJogadores = MAX_JOGADORES;
     }
 
+    // Salvar ranking de volta no arquivo
     arquivo = fopen("ranking.txt", "w");
-    for (int i = 0; i < totalJogadores; i++) {
+    if (arquivo == NULL){
+        perror("Erro ao abrir arquivo para escrita");
+        free(ranking);
+        return;
+    }
+    for (int i = 0; i < totalJogadores; i++){
         fprintf(arquivo, "%-20s %d\n", ranking[i].nome, ranking[i].pontuacao);
     }
     fclose(arquivo);
+
+    // Liberar memória dinâmica
+    free(ranking);
 }
 
-void exibirRanking() {
+void exibirRanking(){
     screenSetColor(RED, WHITE);
     FILE *arquivo = fopen("ranking.txt", "r");
     if (arquivo == NULL) {
@@ -310,15 +350,15 @@ void exibirRanking() {
     printf("Digite 0 para voltar ao menu:");
     screenUpdate();
 
-    while (sair != 0) {
-        if (keyhit()) {
+    while (sair != 0){
+        if (keyhit()){
             sair = readch() - '0'; // Lê o caractere digitado e converte para inteiro
         }
     }
 }
 
 
-void exibirMenuInicial() {
+void exibirMenuInicial(){
     screenClear();
     screenSetColor(YELLOW, WHITE);
     screenInit(1);
@@ -354,7 +394,7 @@ void exibirMenuInicial() {
 }
 
 
-int main() {
+int main(){
     exibirMenuInicial();
     screenClear();
     jogoPenaltis();
