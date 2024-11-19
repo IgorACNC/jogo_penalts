@@ -40,7 +40,7 @@ Cada chute resulta em pontuações diferentes dependendo da precisão e da área
 ### **Passos para Jogar**
 1. **Clone o repositório do jogo:**  
    ```bash
-   git clone https://github.com/seu_usuario/penalts.git
+   git clone git clone https://github.com/IgorACNC/jogo_penalts.git
    cd penalts
 
 2. **Compile o jogo:**
